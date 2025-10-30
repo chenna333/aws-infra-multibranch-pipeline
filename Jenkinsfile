@@ -4,20 +4,20 @@ pipeline {
     environment {
         AWS_DEFAULT_REGION = 'us-east-1'
         TF_VERSION = '1.9.5'
-        BACKEND_BUCKET = 'multiinfrs-unique-bucket'  // your existing bucket
+        BACKEND_BUCKET = 'multiinfrs-unique-bucket'  // Update with your S3 bucket
     }
 
     stages {
         stage('Checkout') {
             steps {
-                echo "Checking out code..."
+                echo "Checking out repository..."
                 checkout scm
             }
         }
 
         stage('Setup Terraform') {
             steps {
-                echo "Setting up Terraform..."
+                echo "Installing Terraform if not available..."
                 sh '''
                     if ! command -v terraform >/dev/null 2>&1; then
                         curl -o terraform.zip https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip
@@ -29,12 +29,11 @@ pipeline {
             }
         }
 
-        stage('Initialize Backend') {
+        stage('Terraform Init') {
             steps {
                 script {
-                    // Detect environment from branch name
                     def envName = env.BRANCH_NAME.trim()
-                    echo "Detected environment: ${envName}"
+                    echo "Initializing Terraform backend for ${envName}..."
 
                     sh """
                     terraform init \
@@ -47,11 +46,18 @@ pipeline {
             }
         }
 
+        stage('Terraform Validate') {
+            steps {
+                echo "Validating Terraform configuration..."
+                sh 'terraform validate'
+            }
+        }
+
         stage('Terraform Plan') {
             steps {
                 script {
                     def envName = env.BRANCH_NAME.trim()
-                    echo "Running terraform plan for ${envName}"
+                    echo "Running Terraform plan for ${envName}..."
                     sh "terraform plan -var-file=${envName}/terraform.tfvars -out=tfplan-${envName}"
                 }
             }
@@ -64,8 +70,32 @@ pipeline {
             steps {
                 script {
                     def envName = env.BRANCH_NAME.trim()
-                    echo "Applying Terraform changes for ${envName}"
+                    echo "Applying Terraform configuration for ${envName}..."
                     sh "terraform apply -auto-approve tfplan-${envName}"
+                }
+            }
+        }
+
+        stage('EKS Cluster Access and Namespace Setup') {
+            when {
+                branch pattern: ".*", comparator: "REGEXP"
+            }
+            steps {
+                script {
+                    def envName = env.BRANCH_NAME.trim()
+                    echo "Setting up kubectl access for ${envName} cluster..."
+
+                    // Update kubeconfig for respective cluster
+                    sh """
+                        aws eks update-kubeconfig --name ${envName}-eks-cluster --region ${AWS_DEFAULT_REGION}
+                        kubectl config current-context
+                    """
+
+                    echo "Creating namespace and roles for ${envName}..."
+                    sh """
+                        kubectl apply -f k8s/namespace.yaml
+                        kubectl apply -f k8s/roles.yaml
+                    """
                 }
             }
         }
@@ -73,15 +103,14 @@ pipeline {
 
     post {
         always {
-            echo "Cleaning workspace..."
+            echo "Cleaning up workspace..."
             deleteDir()
         }
         success {
-            echo "Terraform deployment completed successfully ✅"
+            echo "✅ Terraform and EKS deployment completed successfully."
         }
         failure {
-            echo "Terraform deployment failed ❌"
+            echo "❌ Pipeline failed."
         }
     }
 }
-
