@@ -1,21 +1,53 @@
+##################################################
+# STEP 1 — Create DB Subnet Group
+##################################################
 resource "aws_db_subnet_group" "this" {
   name       = "${var.env}-db-subnet-group"
   subnet_ids = var.subnet_ids
+
   tags = {
     Name = "${var.env}-db-subnet-group"
   }
 }
 
-# 🔒 Fetch DB credentials from AWS Secrets Manager
-data "aws_secretsmanager_secret_version" "db_secret" {
-  secret_id = "${var.env}-db-credentials"
+##################################################
+# STEP 2 — Create Secrets Manager Secret (if not exists)
+##################################################
+resource "random_password" "db_password" {
+  length  = 16
+  special = true
 }
 
-# Decode JSON secret (expected format: {"username":"admin","password":"xxxx"})
+# Create the secret name
+resource "aws_secretsmanager_secret" "db_secret" {
+  name        = "${var.env}-db-credentials"
+  description = "Database credentials for ${var.env} environment"
+}
+
+# Store the username/password in the secret
+resource "aws_secretsmanager_secret_version" "db_secret_value" {
+  secret_id = aws_secretsmanager_secret.db_secret.id
+
+  secret_string = jsonencode({
+    username = var.db_username
+    password = random_password.db_password.result
+  })
+}
+
+##################################################
+# STEP 3 — Fetch the secret value (to use for RDS)
+##################################################
+data "aws_secretsmanager_secret_version" "db_secret_data" {
+  secret_id = aws_secretsmanager_secret.db_secret.id
+}
+
 locals {
-  db_creds = jsondecode(data.aws_secretsmanager_secret_version.db_secret.secret_string)
+  db_creds = jsondecode(data.aws_secretsmanager_secret_version.db_secret_data.secret_string)
 }
 
+##################################################
+# STEP 4 — Create the RDS Instance
+##################################################
 resource "aws_db_instance" "this" {
   identifier              = "${var.env}-db"
   allocated_storage       = var.allocated_storage
@@ -23,8 +55,8 @@ resource "aws_db_instance" "this" {
   engine_version          = "13.7"
   instance_class          = var.instance_class
   name                    = var.db_name
-  username                = local.db_creds.username   # 🔑 from Secrets Manager
-  password                = local.db_creds.password   # 🔑 from Secrets Manager
+  username                = local.db_creds.username
+  password                = local.db_creds.password
   skip_final_snapshot     = true
   db_subnet_group_name    = aws_db_subnet_group.this.name
   publicly_accessible     = false
@@ -35,6 +67,13 @@ resource "aws_db_instance" "this" {
   }
 }
 
+##################################################
+# STEP 5 — Outputs
+##################################################
 output "db_instance_identifier" {
   value = aws_db_instance.this.id
+}
+
+output "db_secret_arn" {
+  value = aws_secretsmanager_secret.db_secret.arn
 }
