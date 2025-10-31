@@ -24,13 +24,11 @@ module "eks" {
 
 # Create RDS
 module "rds" {
-  source      = "./modules/rds"
-  env         = var.env
-  region      = var.aws_region
-  subnet_ids  = module.vpc.private_subnets
-  db_name     = lookup(var, "db_name", "${var.env}_db")
-  username    = lookup(var, "db_username", "admin")
-  password    = lookup(var, "db_password", "ChangeMe123!")
-  instance_class = lookup(var, "db_instance_class", "db.t3.micro")
-  allocated_storage = lookup(var, "db_allocated_storage", 20)
+  source             = "./modules/rds"
+  env                = var.environment
+  subnet_ids         = module.vpc.private_subnets
+  allocated_storage  = var.db_allocated_storage
+  instance_class     = var.db_instance_class
+  db_name            = var.db_name
 }
+
