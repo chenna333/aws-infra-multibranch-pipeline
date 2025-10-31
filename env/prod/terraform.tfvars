@@ -10,8 +10,6 @@ eks_node_count    = 4
 eks_instance_type = "t3.large"
 
 db_name           = "proddb"
-db_username       = "prodadmin"
-db_password       = "prod@12345"
 db_instance_class = "db.t3.large"
 db_allocated_storage = 50
 
