@@ -10,8 +10,6 @@ eks_node_count    = 3
 eks_instance_type = "t3.medium"
 
 db_name           = "mtfdb"
-db_username       = "mtfadmin"
-db_password       = "mtf@12345"
 db_instance_class = "db.t3.medium"
 db_allocated_storage = 20
 
