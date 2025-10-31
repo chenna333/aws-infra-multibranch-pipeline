@@ -10,8 +10,6 @@ eks_node_count    = 2
 eks_instance_type = "t3.medium"
 
 db_name           = "stgdb"
-db_username       = "stgadmin"
-db_password       = "stg@12345"
 db_instance_class = "db.t3.medium"
 db_allocated_storage = 20
 
