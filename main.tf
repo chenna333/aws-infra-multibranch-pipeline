@@ -22,15 +22,18 @@ module "eks" {
   subnet_ids   = module.vpc.private_subnets
 }
 
-# Create RDS
 module "rds" {
-  source             = "./modules/rds"
-  env                = var.environment
-  subnet_ids         = module.vpc.private_subnets
-  allocated_storage  = var.db_allocated_storage
-  instance_class     = var.db_instance_class
-  db_name            = var.db_name
+  source            = "./modules/rds"
+  env               = var.env
+  region            = var.aws_region
+  subnet_ids        = module.vpc.private_subnets
+  db_name           = var.db_name
+  username          = local.db_creds.username
+  password          = local.db_creds.password
+  instance_class    = var.db_instance_class
+  allocated_storage = var.db_allocated_storage
 }
+
 
 # Read credentials from Secrets Manager
 data "aws_secretsmanager_secret_version" "db_secret" {
