@@ -10,7 +10,5 @@ eks_node_count   = 2
 eks_instance_type = "t3.medium"
 
 db_name           = "devdb"
-db_username       = "devadmin"
-db_password       = "dev@12345"
 db_instance_class = "db.t3.micro"
 db_allocated_storage = 20
