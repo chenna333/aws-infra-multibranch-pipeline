@@ -32,3 +32,13 @@ module "rds" {
   db_name            = var.db_name
 }
 
+# Read credentials from Secrets Manager
+data "aws_secretsmanager_secret_version" "db_secret" {
+  secret_id = "${var.env}-db-credentials"
+}
+
+locals {
+  db_creds = jsondecode(data.aws_secretsmanager_secret_version.db_secret.secret_string)
+}
+
+
