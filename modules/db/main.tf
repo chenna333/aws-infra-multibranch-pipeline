@@ -55,8 +55,6 @@ resource "aws_db_instance" "this" {
   engine_version          = "13.7"
   instance_class          = var.instance_class
   name                    = var.db_name
-  username                = local.db_creds.username
-  password                = local.db_creds.password
   skip_final_snapshot     = true
   db_subnet_group_name    = aws_db_subnet_group.this.name
   publicly_accessible     = false
@@ -77,3 +75,4 @@ output "db_instance_identifier" {
 output "db_secret_arn" {
   value = aws_secretsmanager_secret.db_secret.arn
 }
+
