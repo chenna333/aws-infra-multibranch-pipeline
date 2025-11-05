@@ -1,12 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        AWS_DEFAULT_REGION = 'us-east-1'
-        TF_VERSION = '1.9.5'
-        BACKEND_BUCKET = 'multiinfrs-unique-bucket'  // Update with your S3 bucket
-    }
-
     stages {
         stage('Checkout') {
             steps {
