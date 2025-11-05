@@ -15,20 +15,6 @@ pipeline {
             }
         }
 
-        stage('Setup Terraform') {
-            steps {
-                echo "Installing Terraform if not available..."
-                sh '''
-                    if ! command -v terraform >/dev/null 2>&1; then
-                        curl -o terraform.zip https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip
-                        unzip terraform.zip
-                        sudo mv terraform /usr/local/bin/
-                    fi
-                    terraform version
-                '''
-            }
-        }
-
         stage('Terraform Init') {
             steps {
                 script {
